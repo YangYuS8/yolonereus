@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: ML Internal API (Python Inference Service)
+  version: 0.1.0
+  description: 仅供内部容器网络访问，不对外暴露。
+servers:
+  - url: http://python:8001
+    description: Dev internal
+
+paths:
+  /healthz:
+    get:
+      summary: 健康检查
+      responses:
+        '200': { description: OK }
+
+  /infer:
+    post:
+      summary: 同步推理（仅用于小文件或内部调试）
+      description: 推荐生产使用异步方式（通过队列触发）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                asset_key: { type: string, description: 'MinIO 对象键' }
+                params: { type: object, additionalProperties: true }
+              required: [asset_key]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detections:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        score: { type: number }
+                        bbox: { type: array, items: { type: number }, minItems: 4, maxItems: 4 }

@@ -1,0 +1,354 @@
+openapi: 3.0.3
+info:
+  title: Yolo-Nereus Public API
+  version: 1.0.0
+  description: |
+    对外业务 API（由 PHP 后端提供）。
+    - 认证使用 Bearer JWT
+    - 所有时间为 ISO 8601 UTC
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production
+  - url: http://localhost:8000/api/v1
+    description: Dev
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Sort:
+      name: sort
+      in: query
+      schema: { type: string, example: "created_at:desc" }
+  responses:
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: 未找到
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+      required: [error]
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { type: string, enum: [admin, manager, annotator, viewer] }
+        created_at: { type: string, format: date-time }
+    Project:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+    Inspection:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        name: { type: string }
+        scheduled_at: { type: string, format: date-time }
+        status: { type: string, enum: [pending, running, done, failed] }
+    Sample:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        inspection_id: { type: string, format: uuid }
+        asset_key: { type: string, description: 'MinIO 对象键' }
+        media_type: { type: string, enum: [image, video] }
+        captured_at: { type: string, format: date-time }
+        location: { type: string, description: '坐标/海域区划，后续可结构化' }
+        checksum: { type: string }
+        created_at: { type: string, format: date-time }
+    Annotation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sample_id: { type: string, format: uuid }
+        label: { type: string }
+        bbox: { type: array, items: { type: number }, minItems: 4, maxItems: 4 }
+        polygon: { type: array, items: { type: number } }
+        created_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+    DetectionResult:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sample_id: { type: string, format: uuid }
+        model: { type: string }
+        model_version: { type: string }
+        score: { type: number }
+        label: { type: string }
+        bbox: { type: array, items: { type: number }, minItems: 4, maxItems: 4 }
+        created_at: { type: string, format: date-time }
+    Task:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [inference] }
+        status: { type: string, enum: [queued, running, succeeded, failed] }
+        progress: { type: number, minimum: 0, maximum: 100 }
+        result_id: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+paths:
+  /healthz:
+    get:
+      summary: 健康检查
+      security: []
+      responses:
+        '200':
+          description: OK
+  /auth/login:
+    post:
+      summary: 登录换取 JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+              required: [email, password]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  token_type: { type: string, example: Bearer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /users/me:
+    get:
+      summary: 查看当前用户信息
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /projects:
+    get:
+      summary: 列出项目
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Project' }
+                  page: { type: integer }
+                  page_size: { type: integer }
+                  total: { type: integer }
+    post:
+      summary: 创建项目
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+              required: [name]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /projects/{project_id}:
+    get:
+      summary: 获取项目详情
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /samples:
+    get:
+      summary: 列出样本
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - name: project_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: inspection_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Sample' }
+                  page: { type: integer }
+                  page_size: { type: integer }
+                  total: { type: integer }
+    post:
+      summary: 创建样本元数据（对象应先直传到 MinIO）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_id: { type: string, format: uuid }
+                inspection_id: { type: string, format: uuid }
+                asset_key: { type: string }
+                media_type: { type: string, enum: [image, video] }
+                captured_at: { type: string, format: date-time }
+                location: { type: string }
+                checksum: { type: string }
+              required: [project_id, asset_key, media_type]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+
+  /storage/presign:
+    post:
+      summary: 获取对象直传的预签名 URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                object_key: { type: string }
+                method: { type: string, enum: [PUT] }
+                content_type: { type: string }
+              required: [object_key, method]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  headers: { type: object, additionalProperties: { type: string } }
+
+  /tasks:
+    post:
+      summary: 触发推理任务（异步）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sample_id: { type: string, format: uuid }
+                model: { type: string }
+                model_version: { type: string }
+                params: { type: object, additionalProperties: true }
+              required: [sample_id]
+      responses:
+        '202':
+          description: Accepted，返回 task_id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id: { type: string, format: uuid }
+
+  /tasks/{task_id}:
+    get:
+      summary: 查询任务状态
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404': { $ref: '#/components/responses/NotFound' }
