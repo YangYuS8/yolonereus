@@ -1,0 +1,64 @@
+# ---------------- General ----------------
+# OS & editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+*.bak
+.idea/
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# Env files (keep examples tracked)
+.env*
+!.env.dev.example
+!.env.prod.example
+
+# Build artifacts
+build/
+dist/
+tmp/
+
+# ---------------- Node/Next.js (frontend) ----------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.cache/
+frontend/.vercel/
+# keep lockfiles tracked: package-lock.json / yarn.lock / pnpm-lock.yaml
+npm-debug.log*
+yarn-error.log*
+
+# ---------------- PHP (backend) ----------------
+backend/vendor/
+backend/var/
+backend/storage/
+backend/bootstrap/cache/
+# keep composer.lock tracked for apps
+
+# ---------------- Python (python) ----------------
+python/__pycache__/
+python/**/*.pyc
+python/**/*.pyo
+python/**/*.pyd
+python/*.egg-info/
+python/.venv/
+python/venv/
+python/pip-wheel-metadata/
+python/.pytest_cache/
+python/.mypy_cache/
+python/.ruff_cache/
+python/.ipynb_checkpoints/
+# coverage
+python/.coverage
+python/.coverage.*
+python/htmlcov/
+
+# ---------------- Docker ----------------
+# No dockerignore here; leave compose files tracked
+# You may add docker-compose.override.yml locally and ignore it:
+# docker-compose.override.yml
