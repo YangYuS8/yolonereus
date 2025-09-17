@@ -1,0 +1,4 @@
+fastapi==0.112.2
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+# torch / ultralytics 等按需添加；此处不锁定以避免无 GPU 环境构建失败

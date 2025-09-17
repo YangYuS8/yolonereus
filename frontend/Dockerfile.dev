@@ -1,0 +1,7 @@
+# Dev Dockerfile for Next.js (no app code yet)
+FROM node:20-alpine
+WORKDIR /app
+# deps placeholder to allow later caching; no package.json yet
+RUN npm -v && node -v
+# keep container alive for dev skeleton; replace with `npm run dev` later
+CMD ["sh", "-c", "echo 'frontend dev container ready'; tail -f /dev/null"]

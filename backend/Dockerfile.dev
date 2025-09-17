@@ -1,0 +1,10 @@
+# Dev Dockerfile for PHP backend (placeholder)
+FROM php:8.2-cli
+WORKDIR /app
+# extensions often needed later (pdo_pgsql, redis, gd etc.) - install minimal now
+RUN apt-get update && apt-get install -y \
+    git unzip libpq-dev && \
+    docker-php-ext-install pdo pdo_pgsql && \
+    rm -rf /var/lib/apt/lists/*
+# keep container alive; replace with dev server later
+CMD ["sh", "-c", "echo 'php backend dev container ready'; tail -f /dev/null"]

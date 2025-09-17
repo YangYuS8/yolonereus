@@ -1,0 +1,9 @@
+# Prod Dockerfile for PHP backend (placeholder)
+FROM php:8.2-fpm
+WORKDIR /var/www/html
+RUN apt-get update && apt-get install -y \
+    libpq-dev && \
+    docker-php-ext-install pdo pdo_pgsql && \
+    rm -rf /var/lib/apt/lists/*
+# no code yet; FPM stays running via master process
+CMD ["php-fpm", "-F"]

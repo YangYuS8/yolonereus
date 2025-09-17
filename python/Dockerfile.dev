@@ -1,0 +1,9 @@
+# Dev Dockerfile for ML Python (placeholder)
+FROM python:3.12-slim
+WORKDIR /app
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+# keep container alive for development skeleton
+CMD ["sh", "-c", "echo 'ml-python dev container ready'; tail -f /dev/null"]

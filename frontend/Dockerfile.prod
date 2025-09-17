@@ -1,0 +1,5 @@
+# Prod Dockerfile for Next.js (placeholder)
+FROM node:20-alpine AS base
+WORKDIR /app
+# Copy app later when ready; here just keep container minimal
+CMD ["sh", "-c", "echo 'frontend prod container ready'; tail -f /dev/null"]
